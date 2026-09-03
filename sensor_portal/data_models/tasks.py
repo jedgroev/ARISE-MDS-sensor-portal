@@ -107,13 +107,17 @@ def clean_all_files():
         clean_time = project.clean_time
         logger.info(
             f"Cleaning project: {project.name} with clean time: {clean_time} days.")
+        # Only consider files belonging to this project, so that each project's
+        # clean_time applies to its own files (previously the smallest clean_time
+        # of any project was applied to all archived files).
         files_to_clean = DataFile.objects.filter(
+            deployment__project=project,
             local_storage=True,
             archived=True,
             do_not_remove=False,
             favourite_of__isnull=True,
             deployment_last_image__isnull=True
-        )
+        ).distinct()
 
         files_to_clean = files_to_clean.annotate(file_age=ExpressionWrapper(
             timezone.now().date() - F('modified_on__date'), output_field=DurationField()))
